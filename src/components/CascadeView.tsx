@@ -87,7 +87,7 @@ export function CascadeView() {
               </div>
               {step.alert && (
                 <p className="text-red-400 text-sm mt-2">
-                  Attention: Dettes > 10% du revenu d'activité
+                  Attention: Dettes &gt; 10% du revenu d&apos;activité
                 </p>
               )}
             </div>

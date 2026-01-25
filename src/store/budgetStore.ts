@@ -117,7 +117,7 @@ export const useBudgetStore = create<BudgetState & BudgetActions>()(
 
       calculateBudget: () => {
         const state = get();
-        const { revenus, besoins, dettes, epargne, envies, leverValue } = state;
+        const { revenus, besoins, dettes, epargne, envies } = state;
 
         // CA = Activité + Sociaux + Intérêts (flux internes exclus)
         const ca = revenus.activite + revenus.sociaux + revenus.interets;

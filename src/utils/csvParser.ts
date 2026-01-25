@@ -10,7 +10,8 @@ export interface ParsedBudgetData {
 }
 
 function parseAmount(amountStr: string): number {
-  // Nettoyer et parser le montant avec virgule décimale
+  if (!amountStr || amountStr.trim() === '') return 0;
+  // Montant avec point décimal (format iCompta)
   const cleaned = amountStr
     .replace(/\s/g, '')
     .replace(',', '.')
@@ -19,6 +20,7 @@ function parseAmount(amountStr: string): number {
 }
 
 function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
   // Format: JJ/MM/AAAA
   const parts = dateStr.trim().split('/');
   if (parts.length !== 3) return null;
@@ -32,23 +34,22 @@ function parseDate(dateStr: string): Date | null {
   return new Date(year, month, day);
 }
 
-function categorizeTransaction(compte: string, montant: number): { categorie: string; sousCategorie: string } {
+function categorizeTransaction(compte: string): { categorie: string; sousCategorie: string } | null {
   const compteUpper = compte.toUpperCase();
 
   // REVENUS (ENTRÉES)
-  if (compteUpper.includes('ENTRÉES') || compteUpper.includes('ENTREES') || compteUpper.includes('ENTRÉE') || compteUpper.includes('ENTREE')) {
+  if (compteUpper.includes('ENTRÉES') || compteUpper.includes('ENTREES')) {
     if (compteUpper.includes('ACTIVITÉ') || compteUpper.includes('ACTIVITE')) {
       return { categorie: 'revenus', sousCategorie: 'activite' };
     }
-    if (compteUpper.includes('SOCIAL') || compteUpper.includes('SOCIAUX')) {
+    if (compteUpper.includes('SOCIALES') || compteUpper.includes('SOCIAL')) {
       return { categorie: 'revenus', sousCategorie: 'sociaux' };
     }
-    if (compteUpper.includes('INTÉRÊT') || compteUpper.includes('INTERET') || compteUpper.includes('INTERETS')) {
+    if (compteUpper.includes('INTÉRÊT') || compteUpper.includes('INTERET') ||
+        compteUpper.includes('REMBOURSEMENT') || compteUpper.includes('PRIMES')) {
       return { categorie: 'revenus', sousCategorie: 'interets' };
     }
-    if (compteUpper.includes('FLUX') || compteUpper.includes('INTERNE')) {
-      return { categorie: 'revenus', sousCategorie: 'fluxInternes' };
-    }
+    // Entrée par défaut
     return { categorie: 'revenus', sousCategorie: 'activite' };
   }
 
@@ -56,10 +57,10 @@ function categorizeTransaction(compte: string, montant: number): { categorie: st
   if (compteUpper.includes('SORTIES') || compteUpper.includes('SORTIE')) {
     // BESOINS
     if (compteUpper.includes('BESOIN')) {
-      if (compteUpper.includes('FIXE')) {
+      if (compteUpper.includes('FIXES') || compteUpper.includes('FIXE')) {
         return { categorie: 'besoins', sousCategorie: 'fixes' };
       }
-      if (compteUpper.includes('VARIABLE')) {
+      if (compteUpper.includes('VARIABLES') || compteUpper.includes('VARIABLE')) {
         return { categorie: 'besoins', sousCategorie: 'variables' };
       }
       return { categorie: 'besoins', sousCategorie: 'fixes' };
@@ -67,12 +68,6 @@ function categorizeTransaction(compte: string, montant: number): { categorie: st
 
     // DETTES
     if (compteUpper.includes('DETTE')) {
-      if (compteUpper.includes('IMMO')) {
-        return { categorie: 'dettes', sousCategorie: 'creditImmo' };
-      }
-      if (compteUpper.includes('AUTO') || compteUpper.includes('VOITURE')) {
-        return { categorie: 'dettes', sousCategorie: 'creditAuto' };
-      }
       return { categorie: 'dettes', sousCategorie: 'autres' };
     }
 
@@ -81,34 +76,81 @@ function categorizeTransaction(compte: string, montant: number): { categorie: st
       if (compteUpper.includes('LIVRET') || compteUpper.includes('LEP')) {
         return { categorie: 'epargne', sousCategorie: 'livretLEP' };
       }
-      if (compteUpper.includes('PEA') || compteUpper.includes('PLACEMENT')) {
+      if (compteUpper.includes('PLACEMENT') || compteUpper.includes('PEA')) {
         return { categorie: 'epargne', sousCategorie: 'placementPEA' };
-      }
-      if (compteUpper.includes('INVEST') || compteUpper.includes('PERSONNEL')) {
-        return { categorie: 'epargne', sousCategorie: 'investPersonnel' };
       }
       return { categorie: 'epargne', sousCategorie: 'livretLEP' };
     }
 
     // ENVIES
     if (compteUpper.includes('ENVIE')) {
-      if (compteUpper.includes('FOURMILLE')) {
-        return { categorie: 'envies', sousCategorie: 'fourmilles' };
-      }
       return { categorie: 'envies', sousCategorie: 'occasionnel' };
     }
   }
 
-  // Fallback basé sur le signe du montant
-  if (montant > 0) {
-    return { categorie: 'revenus', sousCategorie: 'activite' };
+  // Non catégorisé
+  return null;
+}
+
+/**
+ * Parse CSV content handling multiline fields (quoted strings with newlines)
+ * Returns array of rows, each row is an array of field values
+ */
+function parseCSVContent(csvContent: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
+  let insideQuotes = false;
+
+  for (let i = 0; i < csvContent.length; i++) {
+    const char = csvContent[i];
+    const nextChar = csvContent[i + 1];
+
+    if (insideQuotes) {
+      if (char === '"') {
+        if (nextChar === '"') {
+          // Escaped quote
+          currentField += '"';
+          i++;
+        } else {
+          // End of quoted field
+          insideQuotes = false;
+        }
+      } else {
+        currentField += char;
+      }
+    } else {
+      if (char === '"') {
+        insideQuotes = true;
+      } else if (char === ';') {
+        currentRow.push(currentField.trim());
+        currentField = '';
+      } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
+        currentRow.push(currentField.trim());
+        if (currentRow.length > 0 && currentRow.some(f => f !== '')) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        currentField = '';
+        if (char === '\r') i++; // Skip \n after \r
+      } else if (char !== '\r') {
+        currentField += char;
+      }
+    }
   }
-  return { categorie: 'besoins', sousCategorie: 'variables' };
+
+  // Handle last field/row
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField.trim());
+    if (currentRow.some(f => f !== '')) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
 }
 
 export function parseCSV(csvContent: string): ParsedBudgetData {
-  const lines = csvContent.split('\n').filter(line => line.trim());
-
   const result: ParsedBudgetData = {
     revenus: { activite: 0, sociaux: 0, interets: 0, fluxInternes: 0 },
     besoins: { fixes: 0, variables: 0 },
@@ -118,17 +160,24 @@ export function parseCSV(csvContent: string): ParsedBudgetData {
     transactions: [],
   };
 
-  // Skip header line
-  const dataLines = lines.slice(1);
+  const rows = parseCSVContent(csvContent);
 
-  for (const line of dataLines) {
-    // Séparateur ;
-    const parts = line.split(';').map(p => p.trim());
-    if (parts.length < 3) continue;
+  // Skip header row
+  const dataRows = rows.slice(1);
 
-    const compte = parts[0];
-    const dateStr = parts[1];
-    const montantStr = parts[2];
+  for (const parts of dataRows) {
+    // Format iCompta: 9 colonnes
+    // Index 0: Compte (catégorie)
+    // Index 4: Date de valeur
+    // Index 7: Montant
+    if (parts.length < 8) continue;
+
+    const compte = parts[0] || '';
+    const dateStr = parts[4] || '';
+    const montantStr = parts[7] || '';
+
+    // Ignorer si montant vide
+    if (!montantStr || montantStr.trim() === '') continue;
 
     const date = parseDate(dateStr);
     if (!date) continue;
@@ -140,7 +189,10 @@ export function parseCSV(csvContent: string): ParsedBudgetData {
     const montant = parseAmount(montantStr);
     if (montant === 0) continue;
 
-    const { categorie, sousCategorie } = categorizeTransaction(compte, montant);
+    const categorization = categorizeTransaction(compte);
+    if (!categorization) continue;
+
+    const { categorie, sousCategorie } = categorization;
 
     const transaction: Transaction = {
       id: crypto.randomUUID(),
@@ -153,7 +205,7 @@ export function parseCSV(csvContent: string): ParsedBudgetData {
 
     result.transactions.push(transaction);
 
-    // Agréger les montants
+    // Agréger les montants (valeur absolue)
     const absAmount = Math.abs(montant);
 
     switch (categorie) {

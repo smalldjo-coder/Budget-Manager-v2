@@ -97,3 +97,344 @@ select:focus-visible {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
 }
+
+/* Light theme */
+html.light-theme {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #e2e8f0;
+  --bg-card: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --border-color: #cbd5e1;
+}
+
+html.light-theme body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html.light-theme .bg-gray-900 {
+  background-color: var(--bg-primary);
+}
+
+html.light-theme .bg-gray-800 {
+  background-color: var(--bg-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+html.light-theme .bg-gray-700 {
+  background-color: var(--bg-secondary);
+}
+
+html.light-theme .bg-gray-600 {
+  background-color: #cbd5e1;
+}
+
+html.light-theme .text-white {
+  color: var(--text-primary);
+}
+
+html.light-theme .text-gray-300,
+html.light-theme .text-gray-400 {
+  color: var(--text-secondary);
+}
+
+html.light-theme .text-gray-500 {
+  color: #64748b;
+}
+
+html.light-theme .border-gray-700,
+html.light-theme .border-gray-600 {
+  border-color: var(--border-color);
+}
+
+html.light-theme input,
+html.light-theme select {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light-theme ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+
+html.light-theme ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+}
+
+html.light-theme ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+html.light-theme .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Modal light theme */
+html.light-theme .fixed.inset-0.bg-black\/70 {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+html.light-theme .bg-green-900 {
+  background-color: #dcfce7;
+}
+
+html.light-theme .bg-red-900 {
+  background-color: #fee2e2;
+}
+
+html.light-theme .bg-purple-900 {
+  background-color: #f3e8ff;
+}
+
+html.light-theme .bg-indigo-900 {
+  background-color: #e0e7ff;
+}
+
+/* ============= ANIMATIONS PREMIUM ============= */
+
+/* Fade In */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Slide Up */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide Down (pour notifications) */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scale In (pour modals) */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Pulse (pour alertes) */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Bounce subtle */
+@keyframes bounceSubtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Shimmer loading */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Classes d'animation */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-bounce-subtle:hover {
+  animation: bounceSubtle 0.3s ease-in-out;
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Cartes avec hover effect */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* Boutons avec effet ripple */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.btn-ripple:active {
+  transform: scale(0.98);
+}
+
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.btn-ripple:hover::after {
+  opacity: 1;
+}
+
+/* Input focus animation */
+input:focus, select:focus {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Stagger animation pour listes */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* Progress bar animation */
+.progress-bar {
+  transition: width 0.5s ease-out;
+}
+
+/* Gauge animation */
+.gauge-circle {
+  transition: stroke-dashoffset 0.8s ease-out;
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-5px);
+  padding: 4px 8px;
+  background: #1f2937;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.tooltip:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Badge notification */
+.badge-pulse {
+  position: relative;
+}
+
+.badge-pulse::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+/* Keyboard shortcut hint */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-family: monospace;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+html.light-theme .kbd {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(31, 41, 55, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html.light-theme .glass {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Number counter animation */
+.counter {
+  transition: all 0.3s ease-out;
+}
+
+/* Success checkmark */
+@keyframes checkmark {
+  0% { stroke-dashoffset: 50; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.checkmark-animated {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: checkmark 0.5s ease-out forwards;
+}

@@ -1,0 +1,374 @@
+# BUDGET MANAGER V2 — SPÉCIFICATION FONCTIONNELLE COMPLÈTE
+
+## 🎯 OBJECTIF
+
+Application web de gestion budgétaire personnelle basée sur la **méthode des enveloppes**, permettant de répartir ses revenus en 4 catégories et de suivre sa santé financière sur 12 mois, avec un module Patrimoine pour le suivi de l'épargne.
+
+---
+
+## 📋 INFORMATIONS PROJET
+
+- **Nom** : Budget Manager v2
+- **Repo GitHub** : `smalldjo-coder/Budget-Manager-v2`
+- **Dossier local** : `/Users/djoe/Documents/DEVELOPPEUR/budget-manager-v2`
+- **URL production** : `https://budget-manager-v2.vercel.app`
+- **Stack** : React 18, Recharts, Tailwind CSS, Vite
+- **Déploiement** : Vercel (auto-deploy sur push branche `main`)
+
+---
+
+## 🏗️ ARCHITECTURE DES VUES
+
+L'application comporte **3 vues** accessibles via des onglets :
+
+| Onglet | Icône | Description |
+|--------|-------|-------------|
+| **Saisie** | 📝 | Saisie/consultation des données mensuelles + import/export |
+| **Dashboard** | 📊 | Graphiques, jauges, calendrier de santé, levier |
+| **Patrimoine** | 🐷 (PiggyBank) | Suivi épargne : LEP, Livret A, PEA avec objectifs dynamiques |
+
+---
+
+## 📊 STRUCTURE BUDGÉTAIRE
+
+### 1. REVENUS (Entrées)
+
+| Catégorie | Description |
+|-----------|-------------|
+| **Revenus d'activité** | Salaires, freelance, activité principale |
+| **Revenus sociaux** | Aides, allocations, solidarité |
+| **Intérêts / Avantages** | Intérêts bancaires, remboursements, primes, avantages |
+| **Flux internes** | Virements entre comptes propres (NON comptés dans le CA) |
+
+**CA (Chiffre d'Affaires)** = Activité + Sociaux + Intérêts — les flux internes sont **exclus** du CA.
+
+### 2. SORTIES (4 Enveloppes)
+
+| Enveloppe | Sous-catégories | Couleur |
+|-----------|-----------------|---------|
+| **BESOINS** | Charges fixes, Charges variables, Nécessité | Gris/Noir |
+| **DETTES** | Crédit immobilier, Crédit auto, Autres dettes | Bleu |
+| **ÉPARGNE** | Livret (LEP), Placement (PEA), Investissements | Orange |
+| **ENVIES** | Fourmilles (petites dépenses récurrentes), Occasionnel | Rouge |
+
+### 3. SOLDE
+
+**Solde Final** = Total Revenus − Total Sorties
+- Affiché en **vert** si positif
+- Affiché en **rouge** si négatif
+
+---
+
+## 📝 VUE SAISIE (Détail)
+
+### Navigation mensuelle
+- **12 boutons** correspondant aux mois (Jan → Déc)
+- Le mois actif est mis en surbrillance
+- Cliquer sur un mois affiche ses données
+
+### Sections de saisie
+Chaque section affiche ses sous-catégories avec un champ de saisie numérique et un total :
+
+1. **REVENUS** : Activité, Sociaux, Intérêts, Flux internes → Total Revenus + CA
+2. **BESOINS** : Fixes, Variables, Nécessité → Total Besoins
+3. **DETTES** : Crédit immo, Crédit auto, Autres → Total Dettes
+4. **ÉPARGNE** : Livret, Placement, Invest → Total Épargne
+5. **ENVIES** : Fourmilles, Occasionnel → Total Envies
+
+Chaque section affiche un **indicateur de santé** sous le total (voir section Indicateurs ci-dessous).
+
+### Boutons d'action
+- **📥 Import CSV** : Import format natif (colonnes prédéfinies)
+- **📱 Import iCompta** : Import CSV exporté depuis iCompta 6
+- **📥 Import Livrets** : Import CSV des comptes d'épargne depuis iCompta 6
+- **📤 Export CSV** : Sauvegarde des données au format CSV
+
+### Stats d'import
+Après un import, afficher le nombre de transactions mappées et le total importé.
+
+---
+
+## 📱 IMPORT iCompta — MAPPING DES CATÉGORIES
+
+### Format du CSV iCompta
+- **Séparateur** : point-virgule (;)
+- **28 colonnes** avec headers
+- **Colonne clé "Compte"** (index 0) : contient la hiérarchie de catégories avec emojis
+- **Colonne "Date de valeur"** (index 4) : format JJ/MM/AAAA
+- **Colonne "Montant"** (index 7) : nombre avec point décimal, peut être vide
+
+### Règles de mapping (basées sur la colonne "Compte")
+
+```
+Si contient "ENTRÉES" ET "ACTIVITÉ"       → revenus.activite
+Si contient "ENTRÉES" ET "SOCIALES"        → revenus.sociaux
+Si contient "ENTRÉES" ET ("INTÉRÊT" OU "REMBOURSEMENT" OU "Primes") → revenus.interets
+Si contient "SORTIES" ET "BESOIN" ET "Fixes"      → besoins.fixes
+Si contient "SORTIES" ET "BESOIN" ET "Variables"   → besoins.variables
+Si contient "SORTIES" ET "BESOIN" ET "Nécessité"   → besoins.necessite
+Si contient "SORTIES" ET "DETTE"                    → dettes.autres
+Si contient "SORTIES" ET "EPARGNE" ET ("Livret" OU "LEP") → epargne.livret
+Si contient "SORTIES" ET "EPARGNE" ET ("Placement" OU "PEA") → epargne.placement
+Si contient "SORTIES" ET "ENVIE" ET ("FOURMILLES" OU "FOURMILLE") → envies.fourmilles
+Si contient "SORTIES" ET "ENVIE" ET ("OCCASIONNEL" OU "OCCASSIONNEL") → envies.occasionnel
+Si contient "SORTIES" ET "ENVIE" (fallback) → envies.occasionnel
+```
+
+### Détection des flux internes
+Les virements entre comptes propres (ex: compte courant → LEP) doivent être détectés et classés en **flux internes**, exclus du CA.
+
+### Gestion des cas spéciaux
+- Ignorer les lignes où le montant est vide
+- Filtrer uniquement l'année sélectionnée (2025, 2026)
+- Gérer les lignes multilignes (commentaires avec guillemets et \n)
+- Les montants sont en valeur absolue (les sorties sont positives)
+- "Fourmilles" doit être testé AVANT le fallback occasionnel
+- Gérer les deux orthographes : "Occasionnel" et "Occassionnel"
+
+---
+
+## 📱 IMPORT LIVRETS — FORMAT ET MAPPING
+
+### Format du CSV Livrets (iCompta)
+- Même structure que le CSV comptes courants
+- Colonne "Compte" (index 0) contient le nom du livret
+- Colonne "Date de valeur" (index 4) : format JJ/MM/AAAA
+- Colonne "Montant" (index 7) : positif = versement/intérêts, négatif = retrait
+
+### Mapping des livrets
+
+```
+Si contient "LEP" ou "Livret Épargne"     → livret "lep"
+Si contient "Livret A"                     → livret "livretA"
+Si contient "PEA" ou "Plan Épargne"        → livret "pea"
+```
+
+### Types d'opérations sur livrets
+
+```
+Si contient "Intérêt" ou "INT."            → type "interets"
+Si contient "Virement" ou "Transfert" :
+  - Montant positif                        → type "versement"
+  - Montant négatif                        → type "retrait"
+```
+
+### Calcul des soldes progressifs
+Pour chaque livret, de janvier à décembre :
+- Mois 1 : `soldeFin = soldeDebut + versements - retraits + interets`
+- Mois suivants : `soldeDebut = soldeFin du mois précédent`
+
+---
+
+## 📊 VUE DASHBOARD (Détail)
+
+### 1. Graphiques (Recharts)
+
+| Graphique | Type | Description |
+|-----------|------|-------------|
+| **Répartition mensuelle** | Pie Chart | Parts de chaque enveloppe pour le mois sélectionné |
+| **Évolution annuelle** | Line Chart | Courbes des 4 enveloppes sur 12 mois |
+| **Répartition empilée** | Bar Chart (stacked) | Barres empilées par mois |
+
+### 2. Jauges de santé (3 jauges circulaires)
+
+| Jauge | Calcul | Seuils |
+|-------|--------|--------|
+| **Dettes** | Total Dettes / Revenus Activité × 100 | ≤10% vert, 11-20% jaune, >20% rouge |
+| **Épargne** | Total Épargne / CA × 100 | <5% rouge, 5-20% vert, >20% orange |
+| **Envies** | Total Envies / CA × 100 | <10% rouge, 10-30% vert, >30% rouge |
+
+### 3. Calendrier de santé budgétaire
+- **12 pastilles** (une par mois) avec couleur selon le score de santé
+- Cliquer sur un mois **change le mois sélectionné** (reste sur Dashboard, ne redirige PAS vers Saisie)
+- Couleurs : vert (bon), jaune (moyen), rouge (mauvais)
+
+### 4. Objectifs Patrimoine
+- Affichage des objectifs LEP et PEA avec barres de progression
+- Pourcentage atteint
+
+### 5. Levier Épargne/Envies
+- **Curseur (slider)** permettant d'ajuster la répartition entre Épargne et Envies
+- Indicateurs visuels montrant l'impact du réglage
+- Met à jour les graphiques en temps réel
+
+---
+
+## 📈 INDICATEURS DE SANTÉ NUANCÉS
+
+### Seuils et zones colorées
+
+#### BESOINS (cible : ≤50% du CA)
+| Plage | Couleur | Label | Conseil |
+|-------|---------|-------|---------|
+| 0-50% | 🟢 Vert | Budget Équilibré | "Permet de vivre selon ses envies et d'épargner" |
+| 51-75% | 🟡 Jaune | Budget Raisonnable | "Contraint à réduire envies, limite l'épargne possible" |
+| 76-100% | 🔴 Rouge | Budget Instable | "Favorise soucis financiers et endettement" |
+
+#### DETTES (cible : ≤10% des revenus d'activité)
+| Plage | Couleur | Label | Conseil |
+|-------|---------|-------|---------|
+| 0-10% | 🟢 Vert | C'est l'idéal | "Plus vous vous rapprochez de zéro, mieux c'est" |
+| 11-20% | 🟡 Jaune | Restriction | "Accélérez le remboursement" |
+| 21%+ | 🔴 Rouge | Stressant | "Priorité au désendettement" |
+
+#### ÉPARGNE (cible : 5-20% du CA)
+| Plage | Couleur | Label | Conseil |
+|-------|---------|-------|---------|
+| 0-4% | 🔴 Rouge | Insuffisant | "Priorisez le fonds d'urgence" |
+| 5-20% | 🟢 Vert | Optimal | "Potentiel maximisé !" |
+| 21%+ | 🟠 Orange | Attention | "Vérifiez que ce n'est pas au détriment des envies" |
+
+#### ENVIES (cible : 10-30% du CA)
+| Plage | Couleur | Label | Conseil |
+|-------|---------|-------|---------|
+| 0-9% | 🔴 Rouge | Frustration | "Autorisez-vous plus de plaisirs" |
+| 10-30% | 🟢 Vert | Équilibré | "Profitez sans culpabiliser !" |
+| 31%+ | 🔴 Rouge | Surconsommation | "Limite votre épargne" |
+
+### Affichage des indicateurs
+- Barre colorée horizontale avec la zone active
+- Pourcentage affiché
+- Label de la zone (ex: "Raisonnable")
+- Conseil contextuel en dessous
+- Présents à la fois dans la vue **Saisie** (sous chaque section) et dans le **Dashboard** (jauges)
+
+### Score de santé global (0-100)
+```
+Score = 100
+- Si Besoins > 75% du CA : -30 points
+- Si Besoins > 50% du CA : -15 points
+- Si Dettes > 20% : -25 points
+- Si Dettes > 10% : -10 points
+- Si Épargne < 5% : -20 points
+- Si Épargne > 20% : -5 points
+- Si Envies < 10% : -15 points
+- Si Envies > 30% : -20 points
+
+Résultat :
+80-100 : Excellent (vert)
+60-79 : Bon (jaune-vert)
+40-59 : À améliorer (jaune)
+0-39 : Critique (rouge)
+```
+
+---
+
+## 🐷 VUE PATRIMOINE (Détail)
+
+### 1. Header — Solde total
+- Titre "Patrimoine Épargne Total"
+- **Montant total** (somme LEP + Livret A + PEA) en grand et vert
+- Objectif total et pourcentage atteint
+- **Évolution du mois** : différence avec le mois précédent (vert si +, rouge si -)
+
+### 2. Cartes Livrets (3 cartes)
+
+| Livret | Catégorie | Objectif dynamique |
+|--------|-----------|-------------------|
+| **LEP** (Boursorama) | Épargne de précaution | 6 mois de charges (besoins fixes + variables + nécessité) |
+| **Livret A** | Épargne de précaution | 3 mois de charges |
+| **PEA** | Investissements long terme | 12 mois de CA (revenus d'activité) |
+
+Chaque carte affiche :
+- Nom du livret
+- Solde actuel
+- Évolution du mois (+/- par rapport au mois précédent)
+- Barre de progression vers l'objectif
+- Pourcentage atteint
+- Détail : versements, retraits, intérêts du mois
+
+### 3. Objectifs dynamiques
+Les objectifs sont calculés automatiquement à partir des données réelles :
+- Prendre tous les mois qui ont des données (totalRevenus > 0)
+- Calculer la **moyenne mensuelle** des besoins et revenus
+- Multiplier par le nombre de mois correspondant (6, 3, ou 12)
+- Si aucune donnée : valeurs par défaut (LEP 7812€, Livret A 3000€, PEA 10000€)
+
+### 4. Graphique d'évolution
+- **Line Chart** ou **Area Chart** montrant l'évolution des 3 livrets + total sur 12 mois
+- Données : patrimoineEvolutionData avec pour chaque mois les soldeFin de chaque livret
+
+---
+
+## 🎨 DESIGN & UX
+
+### Thème
+- **Dark mode** avec fond sombre
+- Interface mobile-first, responsive
+- Couleurs cohérentes avec les enveloppes
+
+### Navigation
+- Onglets en haut (Saisie / Dashboard / Patrimoine)
+- Navigation mois par boutons ou calendrier
+- Transitions fluides entre les vues
+
+### Page d'accueil
+- Écran de bienvenue "Bienvenue dans Budget Manager"
+- Bouton "Suivant" pour accéder à l'app
+- Logo/icône de l'application
+
+---
+
+## ⚙️ CONFIGURATION GIT & DÉPLOIEMENT
+
+Pour que Claude Code puisse push directement sur Vercel :
+
+```bash
+git remote set-url origin https://smalldjo-coder:TOKEN@github.com/smalldjo-coder/Budget-Manager-v2.git
+```
+
+Le token GitHub doit être configuré pour permettre le push automatique. Vercel déploie automatiquement à chaque push sur `main`.
+
+---
+
+## 📋 CHECKLIST DE VÉRIFICATION
+
+Utilise cette checklist pour vérifier que toutes les fonctionnalités sont présentes :
+
+### Vue Saisie
+- [ ] Navigation 12 mois fonctionnelle
+- [ ] Section Revenus (4 sous-catégories + CA calculé hors flux internes)
+- [ ] Section Besoins (Fixes, Variables, Nécessité)
+- [ ] Section Dettes (Crédit immo, Crédit auto, Autres)
+- [ ] Section Épargne (Livret, Placement, Invest)
+- [ ] Section Envies (Fourmilles, Occasionnel — séparées correctement)
+- [ ] Solde Final avec couleur conditionnelle
+- [ ] Indicateurs de santé sous chaque section
+- [ ] Bouton Import CSV natif
+- [ ] Bouton Import iCompta (mapping correct)
+- [ ] Bouton Import Livrets
+- [ ] Bouton Export CSV
+- [ ] Stats d'import affichées
+
+### Vue Dashboard
+- [ ] Pie Chart répartition mensuelle
+- [ ] Line Chart évolution annuelle
+- [ ] Bar Chart empilé
+- [ ] 3 Jauges circulaires (Dettes, Épargne, Envies)
+- [ ] Calendrier santé 12 mois (clic = change mois, reste sur Dashboard)
+- [ ] Objectifs Patrimoine avec progression
+- [ ] Levier Épargne/Envies ajustable
+- [ ] Score de santé global
+
+### Vue Patrimoine
+- [ ] Header avec solde total + évolution
+- [ ] Carte LEP avec solde, objectif, progression
+- [ ] Carte Livret A avec solde, objectif, progression
+- [ ] Carte PEA avec solde, objectif, progression
+- [ ] Objectifs calculés dynamiquement
+- [ ] Graphique d'évolution sur 12 mois
+
+### Import iCompta
+- [ ] Parse correctement le CSV point-virgule 28 colonnes
+- [ ] Mapping catégories par colonne "Compte" avec emojis
+- [ ] Détection flux internes
+- [ ] Fourmilles séparé d'Occasionnel
+- [ ] Gestion lignes multilignes
+- [ ] Gestion montants vides
+- [ ] Filtrage par année
+
+### Import Livrets
+- [ ] Parse CSV livrets
+- [ ] Reconnaissance LEP, Livret A, PEA
+- [ ] Classification versements/retraits/intérêts
+- [ ] Calcul soldes progressifs mois par mois

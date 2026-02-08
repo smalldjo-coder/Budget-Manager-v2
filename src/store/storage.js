@@ -104,6 +104,20 @@ export function saveTheme(theme) {
   } catch (e) {}
 }
 
+export function loadSoldesInitiaux(year) {
+  try {
+    const saved = localStorage.getItem(`${STORAGE_KEY}-soldes-initiaux-${year}`);
+    if (saved) return JSON.parse(saved);
+  } catch (e) {}
+  return { lep: 0, livretA: 0, pea: 0 };
+}
+
+export function saveSoldesInitiaux(soldes, year) {
+  try {
+    localStorage.setItem(`${STORAGE_KEY}-soldes-initiaux-${year}`, JSON.stringify(soldes));
+  } catch (e) {}
+}
+
 export function loadOnboardingDone() {
   try {
     return localStorage.getItem(`${STORAGE_KEY}-onboarding-done`) === "true";

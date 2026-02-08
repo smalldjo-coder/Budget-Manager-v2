@@ -6,7 +6,8 @@ import { parseCSVContent } from '../../utils/csv';
 import { mapIComptaCategory } from '../../utils/categoryMapper';
 import {
   loadFromStorage, saveToStorage, loadSelectedYear, saveSelectedYear,
-  loadTransactions, saveTransactions, loadBudgetPrevu
+  loadTransactions, saveTransactions, loadBudgetPrevu,
+  loadSoldesInitiaux, saveSoldesInitiaux
 } from '../storage';
 import { Smartphone, Download, Upload, Trash2, HardDrive, AlertTriangle, PiggyBank } from "lucide-react";
 
@@ -15,17 +16,20 @@ export const createBudgetDataSlice = (set, get) => ({
   currentMonth: new Date().getMonth(),
   monthsData: loadFromStorage(loadSelectedYear()) || initializeMonthsData(),
   transactions: loadTransactions(loadSelectedYear()),
+  soldesInitiaux: loadSoldesInitiaux(loadSelectedYear()),
 
   setSelectedYear: (year) => {
     saveSelectedYear(year);
     const data = loadFromStorage(year) || initializeMonthsData();
     const transactions = loadTransactions(year);
     const budgetPrevu = loadBudgetPrevu(year);
+    const soldesInitiaux = loadSoldesInitiaux(year);
     set({
       selectedYear: year,
       monthsData: data,
       transactions,
       budgetPrevu,
+      soldesInitiaux,
     });
   },
 
@@ -67,6 +71,19 @@ export const createBudgetDataSlice = (set, get) => ({
       n[currentMonth] = { ...n[currentMonth], levier: parseFloat(val) };
       return { monthsData: n };
     });
+  },
+
+  updateSoldeInitial: (livretKey, val) => {
+    const { selectedYear, soldesInitiaux } = get();
+    const newSoldes = { ...soldesInitiaux, [livretKey]: parseFloat(val) || 0 };
+    saveSoldesInitiaux(newSoldes, selectedYear);
+    set({ soldesInitiaux: newSoldes });
+  },
+
+  setSoldesInitiaux: (soldes) => {
+    const { selectedYear } = get();
+    saveSoldesInitiaux(soldes, selectedYear);
+    set({ soldesInitiaux: soldes });
   },
 
   setTransactions: (transactions) => set({ transactions }),
@@ -369,9 +386,9 @@ export const createBudgetDataSlice = (set, get) => ({
         const dateValeurIdx = findIndex("date de valeur") !== -1 ? findIndex("date de valeur") : 4;
         const montantIdx = findIndex("montant") !== -1 ? findIndex("montant") : 7;
 
-        // Collect operations per livret per month
-        const livretOps = { lep: Array(12).fill(null).map(() => ({ versements: 0, retraits: 0, interets: 0 })), livretA: Array(12).fill(null).map(() => ({ versements: 0, retraits: 0, interets: 0 })), pea: Array(12).fill(null).map(() => ({ versements: 0, retraits: 0, interets: 0 })) };
-        let stats = { total: 0, mapped: 0, skippedYear: 0 };
+        // Parse ALL operations (all years) and sort by date
+        const allOps = [];
+        let stats = { total: 0, mapped: 0 };
 
         for (let i = 1; i < rows.length; i++) {
           const values = rows[i];
@@ -388,10 +405,6 @@ export const createBudgetDataSlice = (set, get) => ({
           const parsedDate = parse(dateValeur, "dd/MM/yyyy", new Date());
           if (!isValid(parsedDate)) continue;
 
-          const year = parsedDate.getFullYear();
-          const month = parsedDate.getMonth();
-          if (year !== selectedYear) { stats.skippedYear++; continue; }
-
           stats.total++;
 
           // Detect which livret
@@ -404,30 +417,101 @@ export const createBudgetDataSlice = (set, get) => ({
           stats.mapped++;
 
           // Detect operation type
+          let opType;
           if (compte.includes("INTÉRÊT") || compte.includes("INTERET") || compte.includes("INT.")) {
-            livretOps[livretKey][month].interets += Math.abs(montant);
+            opType = "interets";
           } else if (montant > 0) {
-            livretOps[livretKey][month].versements += montant;
+            opType = "versement";
           } else {
-            livretOps[livretKey][month].retraits += Math.abs(montant);
+            opType = "retrait";
+          }
+
+          allOps.push({
+            date: parsedDate,
+            year: parsedDate.getFullYear(),
+            month: parsedDate.getMonth(),
+            livretKey,
+            opType,
+            montant: Math.abs(montant),
+          });
+        }
+
+        // Sort all operations by date
+        allOps.sort((a, b) => a.date - b.date);
+
+        // Calculate cumulative balances across all years
+        const cumulSoldes = { lep: 0, livretA: 0, pea: 0 };
+        // Track monthly ops for current year
+        const currentYearOps = { lep: Array(12).fill(null).map(() => ({ versements: 0, retraits: 0, interets: 0 })), livretA: Array(12).fill(null).map(() => ({ versements: 0, retraits: 0, interets: 0 })), pea: Array(12).fill(null).map(() => ({ versements: 0, retraits: 0, interets: 0 })) };
+        // Solde at end of each month for current year
+        const monthEndSoldes = { lep: Array(12).fill(0), livretA: Array(12).fill(0), pea: Array(12).fill(0) };
+        // Track solde at start of selected year (= solde initial)
+        let soldeAtYearStart = { lep: 0, livretA: 0, pea: 0 };
+        let passedYearStart = false;
+
+        for (const op of allOps) {
+          // Record solde just before entering selectedYear
+          if (!passedYearStart && op.year >= selectedYear) {
+            soldeAtYearStart = { ...cumulSoldes };
+            passedYearStart = true;
+          }
+
+          // Apply operation to cumulative
+          if (op.opType === "versement" || op.opType === "interets") {
+            cumulSoldes[op.livretKey] += op.montant;
+          } else {
+            cumulSoldes[op.livretKey] -= op.montant;
+          }
+
+          // Track ops and monthly snapshots for current year
+          if (op.year === selectedYear) {
+            const m = op.month;
+            if (op.opType === "versement") currentYearOps[op.livretKey][m].versements += op.montant;
+            else if (op.opType === "retrait") currentYearOps[op.livretKey][m].retraits += op.montant;
+            else currentYearOps[op.livretKey][m].interets += op.montant;
           }
         }
 
-        // Calculate progressive balances and update monthsData
-        const newMonthsData = monthsData.map((m, idx) => ({ ...m, patrimoine: { ...m.patrimoine } }));
+        // If no ops reached the selected year, solde at year start = final cumul of prior years
+        if (!passedYearStart) {
+          soldeAtYearStart = { ...cumulSoldes };
+        }
 
+        // Calculate month-end balances for selected year using soldeAtYearStart + monthly ops
         for (const key of ["lep", "livretA", "pea"]) {
-          let solde = 0;
+          let solde = soldeAtYearStart[key];
           for (let m = 0; m < 12; m++) {
-            const ops = livretOps[key][m];
+            const ops = currentYearOps[key][m];
             solde += ops.versements - ops.retraits + ops.interets;
-            newMonthsData[m].patrimoine[key] = round2(solde);
+            monthEndSoldes[key][m] = round2(solde);
           }
         }
 
-        set({ monthsData: newMonthsData, isImporting: false });
-        const yearInfo = stats.skippedYear > 0 ? ` (${stats.skippedYear} hors ${selectedYear})` : "";
-        showNotification(`Import livrets ${selectedYear}: ${stats.mapped}/${stats.total} opérations${yearInfo}`, "success", PiggyBank);
+        // Save soldesInitiaux (automatically calculated from historical data)
+        const newSoldesInitiaux = {
+          lep: round2(soldeAtYearStart.lep),
+          livretA: round2(soldeAtYearStart.livretA),
+          pea: round2(soldeAtYearStart.pea),
+        };
+        saveSoldesInitiaux(newSoldesInitiaux, selectedYear);
+
+        // Update monthsData patrimoine with real cumulative balances
+        const newMonthsData = monthsData.map((m, idx) => ({
+          ...m,
+          patrimoine: {
+            ...m.patrimoine,
+            lep: monthEndSoldes.lep[idx],
+            livretA: monthEndSoldes.livretA[idx],
+            pea: monthEndSoldes.pea[idx],
+          }
+        }));
+
+        set({ monthsData: newMonthsData, soldesInitiaux: newSoldesInitiaux, isImporting: false });
+
+        const prevYearOps = allOps.filter(o => o.year < selectedYear).length;
+        const currYearOps = allOps.filter(o => o.year === selectedYear).length;
+        const info = prevYearOps > 0 ? ` (historique: ${prevYearOps} ops antérieures)` : "";
+        showNotification(`Import livrets ${selectedYear}: ${currYearOps} ops + soldes initiaux calculés${info}`, "success", PiggyBank);
 
       } catch (error) {
         showNotification("Erreur import livrets: " + error.message, "error");

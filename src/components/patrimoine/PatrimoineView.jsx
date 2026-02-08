@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from "recharts";
-import { PiggyBank, TrendingUp, TrendingDown, Wallet, Target, Landmark } from "lucide-react";
+import { PiggyBank, TrendingUp, TrendingDown, Wallet, Target, Landmark, Edit3 } from "lucide-react";
 import { MONTHS } from "../../constants";
 import { formatMoney } from "../../utils/formatters";
 import { computePatrimoineObjectifs, computePatrimoineEvolution } from "../../utils/calculations";
 import { ProgressBar } from "../ui/ProgressBar";
 import { useBudgetStore } from "../../store";
 
-const LivretCard = ({ name, icon: Icon, solde, prevSolde, objectif, color, detail }) => {
+const LivretCard = ({ name, icon: Icon, solde, prevSolde, objectif, color }) => {
   const evolution = solde - prevSolde;
   const pct = objectif > 0 ? Math.min((solde / objectif) * 100, 100) : 0;
 
@@ -43,23 +43,6 @@ const LivretCard = ({ name, icon: Icon, solde, prevSolde, objectif, color, detai
           <div className="h-full rounded-full progress-bar" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? 'var(--accent-emerald)' : color }} />
         </div>
       </div>
-
-      {detail && (
-        <div className="grid grid-cols-3 gap-2 text-xs pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-          <div className="text-center">
-            <div style={{ color: 'var(--text-muted)' }}>Versements</div>
-            <div className="font-medium text-green-400 tabular-nums">{formatMoney(detail.versements)}</div>
-          </div>
-          <div className="text-center">
-            <div style={{ color: 'var(--text-muted)' }}>Retraits</div>
-            <div className="font-medium text-red-400 tabular-nums">{formatMoney(detail.retraits)}</div>
-          </div>
-          <div className="text-center">
-            <div style={{ color: 'var(--text-muted)' }}>Intérêts</div>
-            <div className="font-medium text-amber-400 tabular-nums">{formatMoney(detail.interets)}</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -67,17 +50,22 @@ const LivretCard = ({ name, icon: Icon, solde, prevSolde, objectif, color, detai
 export const PatrimoineView = () => {
   const currentMonth = useBudgetStore(s => s.currentMonth);
   const monthsData = useBudgetStore(s => s.monthsData);
+  const selectedYear = useBudgetStore(s => s.selectedYear);
+  const soldesInitiaux = useBudgetStore(s => s.soldesInitiaux);
+  const updateSoldeInitial = useBudgetStore(s => s.updateSoldeInitial);
+  const updatePatrimoine = useBudgetStore(s => s.updatePatrimoine);
 
   const data = monthsData[currentMonth];
-  const prevData = currentMonth > 0 ? monthsData[currentMonth - 1] : null;
+  // For January, compare against soldesInitiaux; otherwise compare against previous month
+  const prevSoldes = currentMonth > 0
+    ? { lep: monthsData[currentMonth - 1].patrimoine.lep || 0, livretA: monthsData[currentMonth - 1].patrimoine.livretA || 0, pea: monthsData[currentMonth - 1].patrimoine.pea || 0 }
+    : { lep: soldesInitiaux.lep || 0, livretA: soldesInitiaux.livretA || 0, pea: soldesInitiaux.pea || 0 };
 
   const objectifsDyn = useMemo(() => computePatrimoineObjectifs(monthsData), [monthsData]);
   const evolutionData = useMemo(() => computePatrimoineEvolution(monthsData), [monthsData]);
 
   const totalSolde = (data.patrimoine.lep || 0) + (data.patrimoine.livretA || 0) + (data.patrimoine.pea || 0);
-  const prevTotalSolde = prevData
-    ? (prevData.patrimoine.lep || 0) + (prevData.patrimoine.livretA || 0) + (prevData.patrimoine.pea || 0)
-    : 0;
+  const prevTotalSolde = prevSoldes.lep + prevSoldes.livretA + prevSoldes.pea;
   const totalEvolution = totalSolde - prevTotalSolde;
   const totalObjectif = objectifsDyn.lep + objectifsDyn.livretA + objectifsDyn.pea;
   const totalPct = totalObjectif > 0 ? Math.min((totalSolde / totalObjectif) * 100, 100) : 0;
@@ -92,7 +80,7 @@ export const PatrimoineView = () => {
           </div>
           <div>
             <h2 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Patrimoine Épargne Total</h2>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{MONTHS[currentMonth]}</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{MONTHS[currentMonth]} {selectedYear}</p>
           </div>
         </div>
 
@@ -118,13 +106,62 @@ export const PatrimoineView = () => {
         </div>
       </div>
 
+      {/* Solde initial au 01/01 */}
+      <div className="card p-5">
+        <h2 className="text-sm font-semibold mb-3 flex items-center gap-2 tracking-tight" style={{ color: 'var(--text-secondary)' }}>
+          <Edit3 className="w-4 h-4" />
+          Solde initial au 01/01/{selectedYear}
+        </h2>
+        <div className="text-xs mb-3 p-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)' }}>
+          Saisissez le solde réel de chaque livret au 1er janvier. Calculé automatiquement lors d'un import livrets multi-années.
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: '#4f7df5' }}>LEP</label>
+            <input
+              type="number"
+              step="0.01"
+              defaultValue={soldesInitiaux.lep || ""}
+              onBlur={e => updateSoldeInitial("lep", e.target.value)}
+              placeholder="0.00"
+              className="w-full px-3 py-2 rounded-lg text-right text-sm tabular-nums"
+              style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: '#8b5cf6' }}>Livret A</label>
+            <input
+              type="number"
+              step="0.01"
+              defaultValue={soldesInitiaux.livretA || ""}
+              onBlur={e => updateSoldeInitial("livretA", e.target.value)}
+              placeholder="0.00"
+              className="w-full px-3 py-2 rounded-lg text-right text-sm tabular-nums"
+              style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: '#f59e0b' }}>PEA</label>
+            <input
+              type="number"
+              step="0.01"
+              defaultValue={soldesInitiaux.pea || ""}
+              onBlur={e => updateSoldeInitial("pea", e.target.value)}
+              placeholder="0.00"
+              className="w-full px-3 py-2 rounded-lg text-right text-sm tabular-nums"
+              style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* 3 Livret Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <LivretCard
           name="LEP (Précaution)"
           icon={Wallet}
           solde={data.patrimoine.lep || 0}
-          prevSolde={prevData ? (prevData.patrimoine.lep || 0) : 0}
+          prevSolde={prevSoldes.lep}
           objectif={objectifsDyn.lep}
           color="#4f7df5"
         />
@@ -132,7 +169,7 @@ export const PatrimoineView = () => {
           name="Livret A (Précaution)"
           icon={Landmark}
           solde={data.patrimoine.livretA || 0}
-          prevSolde={prevData ? (prevData.patrimoine.livretA || 0) : 0}
+          prevSolde={prevSoldes.livretA}
           objectif={objectifsDyn.livretA}
           color="#8b5cf6"
         />
@@ -140,17 +177,69 @@ export const PatrimoineView = () => {
           name="PEA (Long terme)"
           icon={TrendingUp}
           solde={data.patrimoine.pea || 0}
-          prevSolde={prevData ? (prevData.patrimoine.pea || 0) : 0}
+          prevSolde={prevSoldes.pea}
           objectif={objectifsDyn.pea}
           color="#f59e0b"
         />
+      </div>
+
+      {/* Saisie manuelle du solde mensuel */}
+      <div className="card p-5">
+        <h2 className="text-sm font-semibold mb-3 flex items-center gap-2 tracking-tight" style={{ color: 'var(--text-secondary)' }}>
+          <Edit3 className="w-4 h-4" />
+          Solde fin {MONTHS[currentMonth]} {selectedYear}
+        </h2>
+        <div className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+          Solde réel de chaque livret à la fin du mois (mis à jour automatiquement par l'import, ou saisissable manuellement).
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: '#4f7df5' }}>LEP</label>
+            <input
+              type="number"
+              step="0.01"
+              key={`lep-${currentMonth}`}
+              defaultValue={data.patrimoine.lep || ""}
+              onBlur={e => updatePatrimoine("lep", e.target.value)}
+              placeholder="0.00"
+              className="w-full px-3 py-2 rounded-lg text-right text-sm tabular-nums"
+              style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: '#8b5cf6' }}>Livret A</label>
+            <input
+              type="number"
+              step="0.01"
+              key={`livretA-${currentMonth}`}
+              defaultValue={data.patrimoine.livretA || ""}
+              onBlur={e => updatePatrimoine("livretA", e.target.value)}
+              placeholder="0.00"
+              className="w-full px-3 py-2 rounded-lg text-right text-sm tabular-nums"
+              style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: '#f59e0b' }}>PEA</label>
+            <input
+              type="number"
+              step="0.01"
+              key={`pea-${currentMonth}`}
+              defaultValue={data.patrimoine.pea || ""}
+              onBlur={e => updatePatrimoine("pea", e.target.value)}
+              placeholder="0.00"
+              className="w-full px-3 py-2 rounded-lg text-right text-sm tabular-nums"
+              style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Graphique d'évolution */}
       <div className="card p-5">
         <h2 className="text-sm font-semibold mb-4 text-center flex items-center justify-center gap-2 tracking-tight" style={{ color: 'var(--text-secondary)' }}>
           <Target className="w-4 h-4" />
-          Évolution Patrimoine — 12 mois
+          Évolution Patrimoine — {selectedYear}
         </h2>
         <ResponsiveContainer width="100%" height={250}>
           <AreaChart data={evolutionData}>
@@ -188,7 +277,7 @@ export const PatrimoineView = () => {
           Objectifs Dynamiques
         </h2>
         <div className="text-xs mb-3 p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)' }}>
-          Les objectifs sont calculés automatiquement : LEP = 6 mois de charges, Livret A = 3 mois de charges, PEA = 12 mois de revenus d'activité.
+          LEP = 6 mois de charges, Livret A = 3 mois de charges, PEA = 12 mois de revenus d'activité.
         </div>
         <ProgressBar label="LEP (6 mois de charges)" current={data.patrimoine.lep || 0} target={objectifsDyn.lep} icon={Wallet} formatMoney={formatMoney} />
         <ProgressBar label="Livret A (3 mois de charges)" current={data.patrimoine.livretA || 0} target={objectifsDyn.livretA} icon={Landmark} formatMoney={formatMoney} />

@@ -9,8 +9,7 @@ import { NotificationToast } from "./components/ui/NotificationToast";
 import { LoadingOverlay } from "./components/ui/LoadingOverlay";
 import { Onboarding } from "./components/onboarding/Onboarding";
 import { KeyboardHelp } from "./components/onboarding/KeyboardHelp";
-import { DesktopHeader } from "./components/layout/DesktopHeader";
-import { MobileHeader } from "./components/layout/MobileHeader";
+import { TopNavigation } from "./components/layout/TopNavigation";
 import { ImportStatsBar } from "./components/layout/ImportStatsBar";
 import { MonthSelector } from "./components/layout/MonthSelector";
 import { Footer } from "./components/layout/Footer";
@@ -100,14 +99,13 @@ export default function BudgetApp() {
       <input type="file" ref={livretsInputRef} onChange={handleLivretsImport} accept=".csv" className="hidden" />
 
       <div className="max-w-6xl mx-auto">
-        <DesktopHeader fileInputRef={fileInputRef} iComptaInputRef={iComptaInputRef} livretsInputRef={livretsInputRef} />
-        <MobileHeader fileInputRef={fileInputRef} iComptaInputRef={iComptaInputRef} livretsInputRef={livretsInputRef} />
+        <TopNavigation />
         <ImportStatsBar />
         <MonthSelector allMonthsCalculs={allMonthsCalculs} />
 
         {view === "dashboard" ? <DashboardView /> : view === "patrimoine" ? <PatrimoineView /> : <SaisieView />}
 
-        <Footer />
+        <Footer fileInputRef={fileInputRef} iComptaInputRef={iComptaInputRef} livretsInputRef={livretsInputRef} exportToCSV={exportToCSV} />
       </div>
 
       <SettingsModal />

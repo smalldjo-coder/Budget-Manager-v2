@@ -7,7 +7,7 @@ import { mapIComptaCategory } from '../../utils/categoryMapper';
 import {
   loadFromStorage, saveToStorage, loadSelectedYear, saveSelectedYear,
   loadTransactions, saveTransactions, loadBudgetPrevu,
-  loadSoldesInitiaux, saveSoldesInitiaux
+  loadSoldesInitiaux, saveSoldesInitiaux, loadPartageExpenses
 } from '../storage';
 import { Smartphone, Download, Upload, Trash2, HardDrive, AlertTriangle, PiggyBank } from "lucide-react";
 
@@ -24,12 +24,14 @@ export const createBudgetDataSlice = (set, get) => ({
     const transactions = loadTransactions(year);
     const budgetPrevu = loadBudgetPrevu(year);
     const soldesInitiaux = loadSoldesInitiaux(year);
+    const partageExpenses = loadPartageExpenses(year);
     set({
       selectedYear: year,
       monthsData: data,
       transactions,
       budgetPrevu,
       soldesInitiaux,
+      partageExpenses,
     });
   },
 

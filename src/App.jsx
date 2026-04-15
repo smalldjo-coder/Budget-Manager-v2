@@ -16,6 +16,7 @@ import { Footer } from "./components/layout/Footer";
 import { DashboardView } from "./components/dashboard/DashboardView";
 import { SaisieView } from "./components/saisie/SaisieView";
 import { PatrimoineView } from "./components/patrimoine/PatrimoineView";
+import { PartageView } from "./components/partage/PartageView";
 import { SettingsModal } from "./components/modals/SettingsModal";
 import { TransactionsModal } from "./components/modals/TransactionsModal";
 import { CompareModal } from "./components/modals/CompareModal";
@@ -74,6 +75,7 @@ export default function BudgetApp() {
         case 's': e.preventDefault(); setView('saisie'); break;
         case 'd': e.preventDefault(); setView('dashboard'); break;
         case 'p': e.preventDefault(); setView('patrimoine'); break;
+        case 'r': e.preventDefault(); setView('partage'); break;
         case 'arrowleft': e.preventDefault(); setCurrentMonth(currentMonth > 0 ? currentMonth - 1 : 11); break;
         case 'arrowright': e.preventDefault(); setCurrentMonth(currentMonth < 11 ? currentMonth + 1 : 0); break;
         case 'i': e.preventDefault(); iComptaInputRef.current?.click(); break;
@@ -103,7 +105,7 @@ export default function BudgetApp() {
         <ImportStatsBar />
         <MonthSelector allMonthsCalculs={allMonthsCalculs} />
 
-        {view === "dashboard" ? <DashboardView /> : view === "patrimoine" ? <PatrimoineView /> : <SaisieView />}
+        {view === "dashboard" ? <DashboardView /> : view === "patrimoine" ? <PatrimoineView /> : view === "partage" ? <PartageView /> : <SaisieView />}
 
         <Footer fileInputRef={fileInputRef} iComptaInputRef={iComptaInputRef} livretsInputRef={livretsInputRef} exportToCSV={exportToCSV} />
       </div>

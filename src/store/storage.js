@@ -130,3 +130,17 @@ export function saveOnboardingDone() {
     localStorage.setItem(`${STORAGE_KEY}-onboarding-done`, "true");
   } catch (e) {}
 }
+
+export function loadPartageExpenses(year) {
+  try {
+    const saved = localStorage.getItem(`${STORAGE_KEY}-partage-${year}`);
+    if (saved) return JSON.parse(saved);
+  } catch (e) {}
+  return [];
+}
+
+export function savePartageExpenses(expenses, year) {
+  try {
+    localStorage.setItem(`${STORAGE_KEY}-partage-${year}`, JSON.stringify(expenses));
+  } catch (e) {}
+}

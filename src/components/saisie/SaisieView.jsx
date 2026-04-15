@@ -232,5 +232,6 @@ export const SaisieView = () => {
           </button>
         </div>
       </div>
+    </div>
   );
 };

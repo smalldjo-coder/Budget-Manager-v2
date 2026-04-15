@@ -1,4 +1,4 @@
-import { Bell, User, Pencil, TrendingUp, PiggyBank, Settings, LayoutDashboard } from "lucide-react";
+import { Bell, User, Pencil, TrendingUp, PiggyBank, Settings, LayoutDashboard, Users } from "lucide-react";
 import { useBudgetStore } from "../../store";
 
 export const TopNavigation = () => {
@@ -37,46 +37,58 @@ export const TopNavigation = () => {
 
       {/* Navigation Tabs Row */}
       <div className="flex items-center justify-center">
-        <div className="bg-surface-200/50 backdrop-blur-md p-1.5 rounded-2xl flex gap-1 border border-border-subtle w-full max-w-2xl">
+        <div className="bg-surface-200/50 backdrop-blur-md p-1.5 rounded-2xl flex gap-1 border border-border-subtle w-full max-w-3xl">
           <button
             onClick={() => setView("saisie")}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+            className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all duration-300 ${
               view === "saisie"
                 ? "bg-accent-blue text-white shadow-glow-blue shadow-md"
                 : "text-text-secondary hover:text-white hover:bg-surface-200"
             }`}
           >
             <Pencil className="w-4 h-4" />
-            Saisie
+            <span className="hidden sm:inline">Saisie</span>
           </button>
           <button
             onClick={() => setView("dashboard")}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+            className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all duration-300 ${
               view === "dashboard"
                 ? "bg-accent-blue text-white shadow-glow-blue shadow-md"
                 : "text-text-secondary hover:text-white hover:bg-surface-200"
             }`}
           >
             <LayoutDashboard className="w-4 h-4" />
-            Analyses
+            <span className="hidden sm:inline">Analyses</span>
           </button>
           <button
             onClick={() => setView("patrimoine")}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+            className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all duration-300 ${
               view === "patrimoine"
                 ? "bg-accent-blue text-white shadow-glow-blue shadow-md"
                 : "text-text-secondary hover:text-white hover:bg-surface-200"
             }`}
           >
             <PiggyBank className="w-4 h-4" />
-            Objectifs
+            <span className="hidden sm:inline">Objectifs</span>
+          </button>
+          <button
+            onClick={() => setView("partage")}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all duration-300 ${
+              view === "partage"
+                ? "bg-accent-purple text-white shadow-md"
+                : "text-text-secondary hover:text-white hover:bg-surface-200"
+            }`}
+            style={view === "partage" ? { boxShadow: '0 0 20px -5px rgba(139, 92, 246, 0.4)' } : {}}
+          >
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Partage</span>
           </button>
           <button
             onClick={() => setShowSettings(true)}
-            className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 text-text-secondary hover:text-white hover:bg-surface-200"
+            className="flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all duration-300 text-text-secondary hover:text-white hover:bg-surface-200"
           >
             <Settings className="w-4 h-4" />
-            Paramètres
+            <span className="hidden sm:inline">Paramètres</span>
           </button>
         </div>
       </div>

@@ -50,11 +50,23 @@ export const ONBOARDING_STEPS = [
   }
 ];
 
+// Catégories de dépenses partagées
+export const PARTAGE_CATEGORIES = [
+  { id: 'alimentation', label: 'Alimentation', icon: '🛒', color: '#34d399' },
+  { id: 'vetements_enfant', label: 'Vêtements enfant', icon: '👶', color: '#f59e0b' },
+  { id: 'sante', label: 'Santé', icon: '🏥', color: '#f43f5e' },
+  { id: 'assurance', label: 'Assurances', icon: '🛡️', color: '#4f7df5' },
+  { id: 'charges_fixes', label: 'Charges fixes', icon: '🏠', color: '#8b5cf6' },
+  { id: 'loisirs_famille', label: 'Loisirs famille', icon: '🎠', color: '#22d3ee' },
+  { id: 'autre', label: 'Autre', icon: '📦', color: '#8b92ad' },
+];
+
 // Raccourcis clavier
 export const KEYBOARD_SHORTCUTS = [
   { key: "s", description: "Aller à Saisie", action: "saisie" },
   { key: "d", description: "Aller au Dashboard", action: "dashboard" },
   { key: "p", description: "Aller au Patrimoine", action: "patrimoine" },
+  { key: "r", description: "Aller au Partage", action: "partage" },
   { key: "ArrowLeft", description: "Mois précédent", action: "prevMonth" },
   { key: "ArrowRight", description: "Mois suivant", action: "nextMonth" },
   { key: "i", description: "Import iCompta", action: "importICompta" },
